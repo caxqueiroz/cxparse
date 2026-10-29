@@ -20,9 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Lint and scan with current Go (govulncheck needs a recent toolchain);
+      # the build jobs test the go.mod minimum.
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: stable
 
       - uses: golangci/golangci-lint-action@v9
         with:
