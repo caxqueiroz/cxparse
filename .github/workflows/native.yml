@@ -22,11 +22,9 @@ jobs:
       matrix:
         include:
           - { runner: macos-15,         target: aarch64-apple-darwin,      goos: darwin,  goarch: arm64, ffi: libliteparse_ffi.dylib, pdfium: libpdfium.dylib }
-          - { runner: macos-15-intel,   target: x86_64-apple-darwin,       goos: darwin,  goarch: amd64, ffi: libliteparse_ffi.dylib, pdfium: libpdfium.dylib }
           # Ubuntu 22.04 keeps the glibc requirement at 2.35.
           - { runner: ubuntu-22.04,     target: x86_64-unknown-linux-gnu,  goos: linux,   goarch: amd64, ffi: libliteparse_ffi.so,    pdfium: libpdfium.so }
           - { runner: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, goos: linux,   goarch: arm64, ffi: libliteparse_ffi.so,    pdfium: libpdfium.so }
-          - { runner: windows-2022,     target: x86_64-pc-windows-msvc,    goos: windows, goarch: amd64, ffi: liteparse_ffi.dll,      pdfium: pdfium.dll }
     defaults:
       run:
         shell: bash
@@ -48,7 +46,12 @@ jobs:
 
       - name: Build
         working-directory: ffi
-        run: cargo build --release --target ${{ matrix.target }}
+        # Force liteparse-pdfium-sys's build script to rerun: it copies PDFium
+        # into deps/, and a restored rust-cache skips the script and prunes
+        # that copy.
+        run: |
+          cargo clean -p liteparse-pdfium-sys --release --target ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
 
       - name: Stage libraries
         run: |

@@ -27,8 +27,8 @@ Go (liteparse pkg) ──purego──▶ libliteparse_ffi  (Rust, C ABI over lit
 
 ### Prebuilt (no Rust needed)
 
-Each `v*` release has prebuilt libraries for darwin/arm64, darwin/amd64,
-linux/amd64, linux/arm64 and windows/amd64. Fetch the set matching the
+Each `v*` release has prebuilt libraries for darwin/arm64, linux/amd64 and
+linux/arm64. Fetch the set matching the
 version in your `go.mod` into `./lib`:
 
 ```bash
@@ -147,7 +147,9 @@ beside it.
 
 Tested locally on macOS arm64. `.github/workflows/native.yml` builds and
 tests (Rust tests, then Go tests with `CGO_ENABLED=0`) on darwin/arm64,
-darwin/amd64, linux/amd64, linux/arm64 and windows/amd64. When you push a
+linux/amd64 and linux/arm64. Intel macOS and Windows go through the same
+code paths (the Go package cross-compiles for both), but no prebuilt
+libraries are published for them; build those with `make native`. When you push a
 `v*` tag, it also publishes the archives and `SHA256SUMS` to the GitHub
 release.
 
