@@ -1,0 +1,38 @@
+[package]
+name = "liteparse-ffi"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "C ABI over the liteparse Rust crate, loaded by the Go bindings via purego (no cgo)"
+publish = false
+
+[lib]
+name = "liteparse_ffi"
+crate-type = ["cdylib"]
+
+[features]
+default = []
+# Built-in Tesseract OCR. Off by default: it compiles leptonica + tesseract
+# from source and pulls libc++ into the Go link line. Without it, OCR is
+# available through `ocr_server_url` (any server implementing liteparse's
+# OCR API spec).
+tesseract = ["liteparse/tesseract"]
+
+[dependencies]
+# Bump LITEPARSE_VERSION in src/lib.rs together with this pin.
+liteparse = { version = "=2.17.0", default-features = false }
+pdfium = { package = "liteparse-pdfium", version = "1.13.0" }
+pdfium-sys = { package = "liteparse-pdfium-sys", version = "1.13.0" }
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+debug = false
+# Keep `strip` off: rustc shells out to the first `strip` on PATH, and an old
+# cctools strip (conda, MacPorts) writes an unaligned string table that
+# current dyld rejects. Strip separately with `strip -x` if size matters.
+strip = "none"

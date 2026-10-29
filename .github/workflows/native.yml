@@ -1,0 +1,105 @@
+# Builds and tests the native libraries on every supported platform. On a
+# v* tag it also publishes them as release assets, which
+# cmd/liteparse-fetch downloads so users don't need a Rust toolchain.
+name: native
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15,         target: aarch64-apple-darwin,      goos: darwin,  goarch: arm64, ffi: libliteparse_ffi.dylib, pdfium: libpdfium.dylib }
+          - { runner: macos-15-intel,   target: x86_64-apple-darwin,       goos: darwin,  goarch: amd64, ffi: libliteparse_ffi.dylib, pdfium: libpdfium.dylib }
+          # Ubuntu 22.04 keeps the glibc requirement at 2.35.
+          - { runner: ubuntu-22.04,     target: x86_64-unknown-linux-gnu,  goos: linux,   goarch: amd64, ffi: libliteparse_ffi.so,    pdfium: libpdfium.so }
+          - { runner: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, goos: linux,   goarch: arm64, ffi: libliteparse_ffi.so,    pdfium: libpdfium.so }
+          - { runner: windows-2022,     target: x86_64-pc-windows-msvc,    goos: windows, goarch: amd64, ffi: liteparse_ffi.dll,      pdfium: pdfium.dll }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ffi
+          key: ${{ matrix.target }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        working-directory: ffi
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage libraries
+        run: |
+          out=ffi/target/${{ matrix.target }}/release
+          mkdir -p lib
+          cp "$out/${{ matrix.ffi }}" lib/
+          # liteparse-pdfium-sys copies the PDFium it downloaded into deps/.
+          cp "$out/deps/${{ matrix.pdfium }}" lib/
+
+      - name: Rust tests
+        working-directory: ffi
+        run: cargo test --release --target ${{ matrix.target }}
+
+      - name: Go tests (no cgo)
+        env:
+          CGO_ENABLED: "0"
+        run: LITEPARSE_LIB_PATH="$PWD/lib" go test ./...
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          tar -czf "dist/liteparse-native_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" \
+            -C lib "${{ matrix.ffi }}" "${{ matrix.pdfium }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liteparse-native_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- *.tar.gz > SHA256SUMS && cat SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release upload "$TAG" dist/*.tar.gz dist/SHA256SUMS --clobber
