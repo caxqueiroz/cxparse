@@ -657,6 +657,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn version_matches_lockfile() {
+        let lock = include_str!("../Cargo.lock");
+        let locked = lock
+            .split("[[package]]")
+            .find(|p| p.contains("\nname = \"liteparse\"\n"))
+            .and_then(|p| p.lines().find_map(|l| l.strip_prefix("version = ")))
+            .map(|v| v.trim_matches('"'))
+            .expect("liteparse in Cargo.lock");
+        assert_eq!(LITEPARSE_VERSION, locked, "bump LITEPARSE_VERSION");
+    }
+
+    #[test]
     fn partial_config_overlays_defaults() {
         let cfg = config_from_json(r#"{"ocr_enabled":false,"output_format":"markdown"}"#).unwrap();
         assert!(!cfg.ocr_enabled);

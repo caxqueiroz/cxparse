@@ -117,7 +117,8 @@ go run ./examples/parse -format markdown liteparse/testdata/sample.pdf
   natively. OCR and layout still run in parallel.
 - **Cancellation:** a canceled `ctx` stops the call at its next await point,
   such as format conversion or OCR. A synchronous PDFium section runs to
-  completion first.
+  completion first. The error matches both `ctx.Err()` and `ErrCanceled`,
+  and the parser stays usable.
 - **Errors:** match them with `errors.Is`: `ErrPDF`, `ErrIO`, `ErrOCR`,
   `ErrConfig`, `ErrConversion`, `ErrInvalidArgument`, `ErrPDFiumUnavailable`,
   `ErrLibraryNotFound`, `ErrClosed`.

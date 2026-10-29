@@ -1,4 +1,5 @@
-# Builds and tests the native libraries on every supported platform. On a
+# Lints and audits the Go and Rust code, then builds and tests the native
+# libraries on every supported platform. On a
 # v* tag it also publishes them as release assets, which
 # cmd/liteparse-fetch downloads so users don't need a Rust toolchain.
 name: native
@@ -14,6 +15,43 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ffi
+          key: lint
+
+      - name: clippy
+        working-directory: ffi
+        run: cargo clippy --release --all-targets -- -D warnings
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: cargo audit
+        working-directory: ffi
+        run: cargo audit
+
   build:
     name: ${{ matrix.goos }}/${{ matrix.goarch }}
     runs-on: ${{ matrix.runner }}
@@ -29,7 +67,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -40,7 +78,7 @@ jobs:
           workspaces: ffi
           key: ${{ matrix.target }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -76,7 +114,7 @@ jobs:
           tar -czf "dist/liteparse-native_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" \
             -C lib "${{ matrix.ffi }}" "${{ matrix.pdfium }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: liteparse-native_${{ matrix.goos }}_${{ matrix.goarch }}
           path: dist/*.tar.gz
@@ -84,12 +122,12 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [lint, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
