@@ -36,3 +36,8 @@ debug = false
 # cctools strip (conda, MacPorts) writes an unaligned string table that
 # current dyld rejects. Strip separately with `strip -x` if size matters.
 strip = "none"
+
+# tesseract-rs (used by the optional `tesseract` feature) depends on a zip
+# release with a critical advisory. See vendor/tesseract-rs/CXPARSE_PATCH.md.
+[patch.crates-io]
+tesseract-rs = { path = "vendor/tesseract-rs" }
