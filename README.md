@@ -166,3 +166,7 @@ The workflow attaches the archives to the release. After that,
   `strip` on your PATH, and an old cctools `strip` (from conda or MacPorts)
   corrupts the dylib. `ffi/Cargo.toml` sets `strip = "none"` to avoid this.
   If you need a smaller library, strip it yourself with `/usr/bin/strip -x`.
+
+## License
+
+Apache-2.0, the same as LiteParse. See [LICENSE](LICENSE).
