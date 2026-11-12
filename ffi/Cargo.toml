@@ -20,7 +20,7 @@ tesseract = ["liteparse/tesseract"]
 
 [dependencies]
 # Bump LITEPARSE_VERSION in src/lib.rs together with this pin.
-liteparse = { version = "=2.17.0", default-features = false }
+liteparse = { version = "=2.18.0", default-features = false }
 pdfium = { package = "liteparse-pdfium", version = "1.13.0" }
 pdfium-sys = { package = "liteparse-pdfium-sys", version = "1.13.0" }
 base64 = "0.22"

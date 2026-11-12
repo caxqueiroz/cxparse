@@ -1568,9 +1568,9 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "liteparse"
-version = "2.17.0"
+version = "2.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7267751f6e80bc0ff625e0e342b6dda3a5ed71c3e9d0218b86e1d385b4299e93"
+checksum = "f46ccba763e0c8a8734df8169f20dac52e9a198ebd40b571913996311ee79780"
 dependencies = [
  "base64 0.22.1",
  "blake3",
